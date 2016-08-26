@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>ru.test</groupId>
+	<artifactId>osb</artifactId>
+	<version>1.0</version>
+	<packaging>pom</packaging>
+
+	<name>OSB Test projects</name>
+
+	<modules>
+		<!-- external -->
+		<module>BusModules_ext/ExternalProject1</module>
+		<module>BusModules_ext/ExternalProject2</module>
+		<!-- internal -->
+		<module>BusModules_int/InternalProject1</module>
+		<module>BusModules_int/InternalProject2</module>
+	</modules>
+</project>

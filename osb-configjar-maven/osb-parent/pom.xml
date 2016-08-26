@@ -1,0 +1,165 @@
+<project>
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>ru.test</groupId>
+	<artifactId>osb-parent</artifactId>   
+	<version>1.0</version>
+	<packaging>pom</packaging>
+
+	<profiles>
+		<profile>
+			<id>local</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<properties>
+				<fmw.home>${env.FMW_HOME}</fmw.home>
+				<weblogic.home>${fmw.home}/wlserver_10.3</weblogic.home>
+				<osb.home>${fmw.home}/Oracle_OSB1</osb.home>
+				<configjar.home>${osb.home}/tools/configjar</configjar.home>
+				<common.components.home>${fmw.home}/oracle_common</common.components.home>
+				<!-- for Windows = empty-->
+				<java.secure.conf/>
+				<exec.classpath>${osb.home}/modules/com.bea.common.configfwk_1.7.0.0.jar;${osb.home}/lib/sb-kernel-api.jar;${osb.home}/lib/alsb.jar;${osb.home}/lib/sb-kernel-wls.jar;${osb.home}/lib/sb-kernel-impl.jar;${fmw.home}/modules/features/weblogic.server.modules_10.3.5.0.jar;${weblogic.home}/server/lib/weblogic.jar;${common.components.home}/modules/oracle.http_client_11.1.1.jar;${common.components.home}/modules/oracle.xdk_11.1.0/xmlparserv2.jar;${common.components.home}/modules/oracle.webservices_11.1.1/orawsdl.jar;${common.components.home}/modules/oracle.wsm.common_11.1.1/wsm-dependencies.jar;${osb.home}/modules/features/osb.server.modules_11.1.1.7.jar;${osb.home}/soa/modules/oracle.soa.common.adapters_11.1.1/oracle.soa.common.adapters.jar;${configjar.home}/configjar.jar;${configjar.home}/L10N;</exec.classpath>
+			</properties>
+		</profile>
+
+		<profile>
+			<id>bamboo</id>
+			<properties>
+				<fmw.home>${env.FMW_HOME}</fmw.home>
+				<weblogic.home>${fmw.home}/wlserver_10.3</weblogic.home>
+				<osb.home>${fmw.home}/osb</osb.home>
+				<configjar.home>${osb.home}/tools/configjar</configjar.home>
+				<common.components.home>${fmw.home}/oracle_common</common.components.home>
+				<java.secure.conf>-Djava.security.egd=file:/dev/./urandom</java.secure.conf>
+				<exec.classpath>${osb.home}/modules/com.bea.common.configfwk_1.7.0.0.jar:${osb.home}/lib/sb-kernel-api.jar:${osb.home}/lib/alsb.jar:${osb.home}/lib/sb-kernel-wls.jar:${osb.home}/lib/sb-kernel-impl.jar:${fmw.home}/modules/features/weblogic.server.modules_10.3.6.0.jar:${weblogic.home}/server/lib/weblogic.jar:${common.components.home}/modules/oracle.http_client_11.1.1.jar:${common.components.home}/modules/oracle.xdk_11.1.0/xmlparserv2.jar:${common.components.home}/modules/oracle.webservices_11.1.1/orawsdl.jar:${common.components.home}/modules/oracle.wsm.common_11.1.1/wsm-dependencies.jar:${osb.home}/modules/features/osb.server.modules_11.1.1.7.jar:${osb.home}/soa/modules/oracle.soa.common.adapters_11.1.1/oracle.soa.common.adapters.jar:${configjar.home}/configjar.jar:${osb.home}/tools/configjar/L10N:</exec.classpath>
+			</properties>
+		</profile>
+	</profiles>
+
+	<properties>
+		<workspace.dir>${project.basedir}/../../</workspace.dir>
+		<workspace.temp.dir>${workspace.dir}/.tempdata</workspace.temp.dir>
+		<settingfile.path>${workspace.temp.dir}/build.xml</settingfile.path>
+		<target.dir>${workspace.dir}/target</target.dir>
+		<artifact.target.dir>${target.dir}/${modules.dir}/${project.artifactId}</artifact.target.dir>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>  
+	</properties>
+
+	<build>
+		<plugins>
+
+			<plugin>
+				<artifactId>maven-clean-plugin</artifactId>
+				<version>2.5</version>
+				<configuration>
+					<filesets>
+						<fileset>
+							<directory>${workspace.temp.dir}</directory>
+						</fileset>
+					</filesets>
+				</configuration>
+				<executions>
+					<execution>
+						<id>auto-clean</id>
+						<phase>initialize</phase>
+						<goals>
+							<goal>clean</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>com.google.code.maven-replacer-plugin</groupId>
+				<artifactId>replacer</artifactId>
+				<version>1.5.2</version>
+				<executions>
+					<execution>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>replace</goal>
+						</goals>                    
+					</execution>
+				</executions>
+				<configuration>
+					<ignoreMissingFile>true</ignoreMissingFile>
+					<file>${workspace.dir}/osb-parent/build.xml</file>
+					<outputFile>${settingfile.path}</outputFile>
+					<regex>false</regex>
+					<replacements>
+						<replacement>
+							<token>$SOURCE_PROJECT$</token>
+							<value>${workspace.dir}/${modules.dir}</value>
+						</replacement>
+						<replacement>
+							<token>$TARGET_PROJECT$</token>
+							<value>${artifact.target.dir}/${project.artifactId}_${project.version}${jar.postfix}.jar</value>
+						</replacement>
+						<replacement>
+							<token>$PROJECT_NAME$</token>
+							<value>${project.artifactId}</value>
+						</replacement>  
+					</replacements>    
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>1.2.1</version>
+				<executions>
+					<execution>
+						<id>build_external</id>
+						<phase>package</phase>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+						<configuration>
+							<includeProjectDependencies>false</includeProjectDependencies>
+							<includePluginDependencies>false</includePluginDependencies>
+							<workingDirectory>${workspace.temp.dir}</workingDirectory>
+							<executable>java</executable>
+
+							<commandlineArgs>
+							-Xms128m 
+							-Xmx256m 
+							-XX:MaxPermSize=256m ${java.secure.conf} 
+							-Dosb.home=${osb.home} 
+							-Dweblogic.home=${weblogic.home} 
+							-classpath ${exec.classpath} com.bea.alsb.tools.configjar.ConfigJar -settingsfile ${settingfile.path}
+							</commandlineArgs>			
+
+							<removeAll>true</removeAll>
+						</configuration>
+					</execution>
+
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>1.4</version>
+				<executions>
+					<execution>
+						<phase>generate-test-resources</phase>
+						<configuration>
+							<tasks>
+								<mkdir dir="${artifact.target.dir}"/>
+								<copy todir="${artifact.target.dir}">
+									<fileset dir="${workspace.dir}/${modules.dir}/${project.artifactId}" includes="config-plans/*" />
+								</copy>
+							</tasks>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+		</plugins>
+	</build>
+</project>

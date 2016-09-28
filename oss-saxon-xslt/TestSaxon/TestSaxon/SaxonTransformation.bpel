@@ -1,0 +1,140 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<!--
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  Oracle JDeveloper BPEL Designer 
+  
+  Created: Wed Sep 28 11:54:15 MSD 2016
+  Author:  Daradur
+  Type: BPEL 1.1 Process
+  Purpose: Synchronous BPEL Process
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-->
+<process name="SaxonTransformation"
+               targetNamespace="http://xmlns.oracle.com/TestSaxon/TestSaxon/SaxonTransformation"
+               xmlns="http://schemas.xmlsoap.org/ws/2003/03/business-process/"
+               xmlns:client="http://xmlns.oracle.com/TestSaxon/TestSaxon/SaxonTransformation"
+               xmlns:ora="http://schemas.oracle.com/xpath/extension"
+               xmlns:bpelx="http://schemas.oracle.com/bpel/extension"
+         xmlns:bpws="http://schemas.xmlsoap.org/ws/2003/03/business-process/"
+         xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+         xmlns:xp20="http://www.oracle.com/XSL/Transform/java/oracle.tip.pc.services.functions.Xpath20"
+         xmlns:bpel2="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+         xmlns:oraext="http://www.oracle.com/XSL/Transform/java/oracle.tip.pc.services.functions.ExtFunc"
+         xmlns:dvm="http://www.oracle.com/XSL/Transform/java/oracle.tip.dvm.LookupValue"
+         xmlns:hwf="http://xmlns.oracle.com/bpel/workflow/xpath"
+         xmlns:ids="http://xmlns.oracle.com/bpel/services/IdentityService/xpath"
+         xmlns:bpm="http://xmlns.oracle.com/bpmn20/extensions"
+         xmlns:xdk="http://schemas.oracle.com/bpel/extension/xpath/function/xdk"
+         xmlns:xref="http://www.oracle.com/XSL/Transform/java/oracle.tip.xref.xpath.XRefXPathFunctions"
+         xmlns:ldap="http://schemas.oracle.com/xpath/extension/ldap">
+
+    <!-- 
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        PARTNERLINKS                                                      
+        List of services participating in this BPEL process               
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    --> 
+  <partnerLinks>
+    <!-- 
+      The 'client' role represents the requester of this service. It is 
+      used for callback. The location and correlation information associated
+      with the client role are automatically set using WS-Addressing.
+    -->
+    <partnerLink name="saxontransformation_client" partnerLinkType="client:SaxonTransformation" myRole="SaxonTransformationProvider"/>
+  </partnerLinks>
+
+  <!-- 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      VARIABLES                                                        
+      List of messages and XML documents used within this BPEL process 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  -->
+  <variables>
+    <!-- Reference to the message passed as input during initiation -->
+    <variable name="inputVariable" messageType="client:SaxonTransformationRequestMessage"/>
+
+    <!-- Reference to the message that will be returned to the requester-->
+    <variable name="outputVariable" messageType="client:SaxonTransformationResponseMessage"/>
+    <variable name="xsltVar" type="xsd:string"/>
+    <variable name="xmlVar" type="xsd:string"/>
+  </variables>
+  <faultHandlers>
+    <catchAll>
+      <sequence name="CatchAllSequence">
+        <assign name="AssignFailureResult">
+          <copy>
+            <from expression="'failure'"/>
+            <to variable="outputVariable" part="payload"
+                query="/client:processResponse/client:resultState"/>
+          </copy>
+        </assign><reply name="replyOutput"
+                                                  partnerLink="saxontransformation_client"
+                                                  portType="client:SaxonTransformation"
+                                                  operation="process"
+                                                  variable="outputVariable"
+                                                  xmlns="http://schemas.xmlsoap.org/ws/2003/03/business-process/"/></sequence>
+    </catchAll>
+  </faultHandlers>
+  <!-- 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+     ORCHESTRATION LOGIC                                               
+     Set of activities coordinating the flow of messages across the    
+     services integrated within this business process                  
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  -->
+  <sequence name="main">
+
+    <!-- Receive input from requestor. (Note: This maps to operation defined in SaxonTransformation.wsdl) -->
+    <receive name="receiveInput" partnerLink="saxontransformation_client" portType="client:SaxonTransformation" operation="process" variable="inputVariable" createInstance="yes"/>
+    <assign name="AssignXSLT">
+      <copy>
+        <from expression="ora:readFile(concat('xsl/', bpws:getVariableData('inputVariable','payload','/client:processRequest/client:dataType'), '.xsl'))"/>
+        <to variable="xsltVar"/>
+      </copy>
+    </assign>
+    <bpelx:exec name="DecodeXSLT" version="1.5" language="java">
+      <![CDATA[try {    
+    java.lang.String encodedContent = (java.lang.String)getVariableData("xsltVar");     
+    java.lang.String decodedContent = new java.lang.String(javax.xml.bind.DatatypeConverter.parseBase64Binary(encodedContent)); 
+    setVariableData("xsltVar", decodedContent);       
+} catch (java.lang.Exception ex) {                       
+    addAuditTrailEntry(ex.getMessage());                       
+}]]>
+    </bpelx:exec>
+    <bpelx:exec name="JavaTransform" version="1.5" language="java">
+      <![CDATA[try {  
+    java.lang.String xsltVar = (java.lang.String) getVariableData("xsltVar");  
+    addAuditTrailEntry("1" + xsltVar);  
+    oracle.xml.parser.v2.XMLElement xmlVarInput = (oracle.xml.parser.v2.XMLElement) getVariableData("inputVariable", "payload", "/client:processRequest/client:inputData/*");  
+    java.io.StringWriter xmlVarWriter = new java.io.StringWriter();  
+    xmlVarInput.print(xmlVarWriter);  
+    java.lang.String xmlVar = xmlVarWriter.toString();  
+    addAuditTrailEntry("2" + xmlVar);  
+    java.io.StringReader xsltReader = new java.io.StringReader(xsltVar);  
+    javax.xml.transform.TransformerFactory factory = net.sf.saxon.TransformerFactoryImpl.newInstance("net.sf.saxon.TransformerFactoryImpl", null);  
+    javax.xml.transform.Transformer transformer = factory.newTransformer(new javax.xml.transform.stream.StreamSource(xsltReader));  
+    java.io.StringReader xmlReader = new java.io.StringReader(xmlVar);  
+    java.io.StringWriter resultWriter = new java.io.StringWriter();   
+    transformer.transform(new javax.xml.transform.stream.StreamSource(xmlReader), new javax.xml.transform.stream.StreamResult(resultWriter));  
+    addAuditTrailEntry("3" + resultWriter.toString());  
+    setVariableData("xmlVar", resultWriter.toString());  
+} catch (java.lang.Exception ex) {  
+    addAuditTrailEntry(ex.getMessage());  
+}]]>
+    </bpelx:exec>
+    <assign name="AssignResult">
+      <copy>
+        <from expression="oraext:parseXML($xmlVar)"/>
+        <to variable="outputVariable" part="payload"
+            query="/client:processResponse/client:outputData"/>
+      </copy>
+      <copy>
+        <from expression="'success'"/>
+        <to variable="outputVariable" part="payload"
+            query="/client:processResponse/client:resultState"/>
+      </copy>
+    </assign>
+    <!-- Generate reply to synchronous request -->
+    <reply name="replyOutput" partnerLink="saxontransformation_client" portType="client:SaxonTransformation" operation="process" variable="outputVariable"/>
+  </sequence>
+</process>

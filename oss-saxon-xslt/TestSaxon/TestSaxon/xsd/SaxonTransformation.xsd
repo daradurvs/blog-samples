@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<schema attributeFormDefault="unqualified"
+	elementFormDefault="qualified"
+	targetNamespace="http://xmlns.oracle.com/TestSaxon/TestSaxon/SaxonTransformation"
+	xmlns="http://www.w3.org/2001/XMLSchema">
+	<element name="processRequest">
+		<complexType>
+			<sequence>
+				<element name="inputData" type="anyType"/>
+                <element name="dataType" type="string"/>
+			</sequence>
+		</complexType>
+	</element>
+	<element name="processResponse">
+		<complexType>
+			<sequence>
+				<element name="outputData" type="anyType"/>
+                                <element name="resultState">
+                                  <simpleType>
+                                    <restriction base="string">
+                                      <enumeration value="success"/>
+                                      <enumeration value="failure"/>
+                                    </restriction>
+                                  </simpleType>
+                                </element>
+			</sequence>
+		</complexType>
+	</element>
+</schema>

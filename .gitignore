@@ -1,1 +1,8 @@
 .metadata
+
+.designer
+**/SCA-INF/bpel
+**/SCA-INF/classes
+**/SCA-INF/gen-classes
+**/classes/.data
+**/deploy/*.jar

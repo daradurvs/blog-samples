@@ -57,6 +57,7 @@
     <variable name="outputVariable" messageType="client:SaxonTransformationResponseMessage"/>
     <variable name="xsltVar" type="xsd:string"/>
     <variable name="xmlVar" type="xsd:string"/>
+    <variable name="xsltPath" type="xsd:string"/>
   </variables>
   <faultHandlers>
     <catchAll>
@@ -88,38 +89,34 @@
     <receive name="receiveInput" partnerLink="saxontransformation_client" portType="client:SaxonTransformation" operation="process" variable="inputVariable" createInstance="yes"/>
     <assign name="AssignXSLT">
       <copy>
-        <from expression="ora:readFile(concat('xsl/', bpws:getVariableData('inputVariable','payload','/client:processRequest/client:dataType'), '.xsl'))"/>
+        <from expression="concat('xsl/', bpws:getVariableData('inputVariable','payload','/client:processRequest/client:dataType'), '.xsl')"/>
+        <to variable="xsltPath"/>
+      </copy>
+      <copy>
+        <from expression="oraext:get-content-as-string(ora:doc($xsltPath))"/>
         <to variable="xsltVar"/>
       </copy>
     </assign>
-    <bpelx:exec name="DecodeXSLT" version="1.5" language="java">
-      <![CDATA[try {    
-    java.lang.String encodedContent = (java.lang.String)getVariableData("xsltVar");     
-    java.lang.String decodedContent = new java.lang.String(javax.xml.bind.DatatypeConverter.parseBase64Binary(encodedContent)); 
-    setVariableData("xsltVar", decodedContent);       
-} catch (java.lang.Exception ex) {                       
-    addAuditTrailEntry(ex.getMessage());                       
-}]]>
-    </bpelx:exec>
     <bpelx:exec name="JavaTransform" version="1.5" language="java">
-      <![CDATA[try {  
-    java.lang.String xsltVar = (java.lang.String) getVariableData("xsltVar");  
-    addAuditTrailEntry("1" + xsltVar);  
-    oracle.xml.parser.v2.XMLElement xmlVarInput = (oracle.xml.parser.v2.XMLElement) getVariableData("inputVariable", "payload", "/client:processRequest/client:inputData/*");  
-    java.io.StringWriter xmlVarWriter = new java.io.StringWriter();  
-    xmlVarInput.print(xmlVarWriter);  
-    java.lang.String xmlVar = xmlVarWriter.toString();  
-    addAuditTrailEntry("2" + xmlVar);  
-    java.io.StringReader xsltReader = new java.io.StringReader(xsltVar);  
-    javax.xml.transform.TransformerFactory factory = net.sf.saxon.TransformerFactoryImpl.newInstance("net.sf.saxon.TransformerFactoryImpl", null);  
-    javax.xml.transform.Transformer transformer = factory.newTransformer(new javax.xml.transform.stream.StreamSource(xsltReader));  
-    java.io.StringReader xmlReader = new java.io.StringReader(xmlVar);  
-    java.io.StringWriter resultWriter = new java.io.StringWriter();   
-    transformer.transform(new javax.xml.transform.stream.StreamSource(xmlReader), new javax.xml.transform.stream.StreamResult(resultWriter));  
-    addAuditTrailEntry("3" + resultWriter.toString());  
-    setVariableData("xmlVar", resultWriter.toString());  
-} catch (java.lang.Exception ex) {  
-    addAuditTrailEntry(ex.getMessage());  
+      <![CDATA[// all addAuditTrailEntry() calls only for debugging  
+try {   
+    java.lang.String xsltVar = (java.lang.String) getVariableData("xsltVar");   
+    addAuditTrailEntry("xsltVar: " + xsltVar);   
+    oracle.xml.parser.v2.XMLElement xmlVarInput = (oracle.xml.parser.v2.XMLElement) getVariableData("inputVariable", "payload", "/client:processRequest/client:inputData/*");   
+    java.io.StringWriter xmlVarWriter = new java.io.StringWriter();   
+    xmlVarInput.print(xmlVarWriter);   
+    java.lang.String xmlVar = xmlVarWriter.toString();   
+    addAuditTrailEntry("xmlVar: " + xmlVar);   
+    java.io.StringReader xsltReader = new java.io.StringReader(xsltVar);   
+    javax.xml.transform.TransformerFactory factory = net.sf.saxon.TransformerFactoryImpl.newInstance("net.sf.saxon.TransformerFactoryImpl", null);   
+    javax.xml.transform.Transformer transformer = factory.newTransformer(new javax.xml.transform.stream.StreamSource(xsltReader));   
+    java.io.StringReader xmlReader = new java.io.StringReader(xmlVar);   
+    java.io.StringWriter resultWriter = new java.io.StringWriter();    
+    transformer.transform(new javax.xml.transform.stream.StreamSource(xmlReader), new javax.xml.transform.stream.StreamResult(resultWriter));   
+    addAuditTrailEntry("result: " + resultWriter.toString());   
+    setVariableData("xmlVar", resultWriter.toString());   
+} catch (java.lang.Exception ex) {   
+    addAuditTrailEntry(ex.getMessage());   
 }]]>
     </bpelx:exec>
     <assign name="AssignResult">

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SOAConfigPlan xmlns:jca="http://platform.integration.oracle/blocks/adapter/fw/metadata" xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:orawsp="http://schemas.oracle.com/ws/2006/01/policy" xmlns:edl="http://schemas.oracle.com/events/edl" xmlns="http://schemas.oracle.com/soa/configplan">
+   <composite name="TestSync">
+      <!--Add search and replace rules for the import section of a composite
+	Example:
+	<searchReplace>
+		<search>http://my-dev-server</search>
+		<replace>http://my-test-server</replace>
+	<searchReplace>
+	<searchReplace>
+		<search>8888</search>
+		<replace>8889</replace>
+	<searchReplace>-->
+      <import>
+         <searchReplace>
+            <search/>
+            <replace/>
+         </searchReplace>
+      </import>
+      <service name="testsync_client_ep">
+         <binding type="ws">
+            <attribute name="port">
+               <replace>http://xmlns.oracle.com/TestParallel/TestSync/TestSync#wsdl.endpoint(testsync_client_ep/TestSync_pt)</replace>
+            </attribute>
+         </binding>
+      </service>
+      <property name="productVersion">
+         <replace>11.1.1.7.8</replace>
+      </property>
+      <!--Add search and replace rules for the component properties
+	For components and service/reference bindings, you can add policy references.
+	Example:
+	<component name="*">
+		<wsp:PolicyReference orawsp:category="management" orawsp:status="enabled" URI="oracle/log_policy"/>
+	</component>-->
+      <component name="TestSync">
+         <property name="bpel.config.transaction">
+            <replace>required</replace>
+         </property>
+         <property name="bpel.config.oneWayDeliveryPolicy">
+            <replace>async.persist</replace>
+         </property>
+      </component>
+      <reference name="SyncService">
+         <binding type="ws">
+            <attribute name="port">
+               <replace>http://xmlns.oracle.com/TestParallel/SyncService/SyncService#wsdl.endpoint(syncservice_client_ep/SyncService_pt)</replace>
+            </attribute>
+            <attribute name="location">
+               <replace>http://localhost:8001/soa-infra/services/soa-common/SyncService/syncservice_client_ep?WSDL</replace>
+            </attribute>
+         </binding>
+      </reference>
+   </composite>
+   <!--To configure monitor.config: 
+	<property name="enabled"><replace>true</replace></property>
+	<property name="dataObjectsFolder"><searchReplace><search>mydev</search><replace>myproduction</replace></searchReplace></property>
+	
+	sample properties to configure for adapter: 
+	<jca:property name="QueueName"><replace>medmq1</replace></jca:property>
+	
+	To add search and replace rules for wsdls, xsd and jca files
+	Example:
+	<searchReplace>
+		<search>http://my-dev-server</search>
+		<replace>http://my-test-server</replace>
+	<searchReplace>
+	<searchReplace>
+		<search>8888</search>
+		<replace>8889</replace>
+	<searchReplace>
+	-->
+   <wsdlAndSchema name="SyncService.wsdl|TestSync.wsdl|xsd/SyncService.xsd|xsd/TestSync.xsd">
+      <searchReplace>
+         <search/>
+         <replace/>
+      </searchReplace>
+   </wsdlAndSchema>
+</SOAConfigPlan>

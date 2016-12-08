@@ -1,0 +1,108 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<!--
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  Oracle JDeveloper BPEL Designer 
+  
+  Created: Thu Dec 08 12:42:57 MSK 2016
+  Author:  Daradur
+  Type: BPEL 1.1 Process
+  Purpose: Synchronous BPEL Process
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-->
+<process name="TestSync"
+               targetNamespace="http://xmlns.oracle.com/TestParallel/TestSync/TestSync"
+               xmlns="http://schemas.xmlsoap.org/ws/2003/03/business-process/"
+               xmlns:client="http://xmlns.oracle.com/TestParallel/TestSync/TestSync"
+               xmlns:ora="http://schemas.oracle.com/xpath/extension"
+               xmlns:bpelx="http://schemas.oracle.com/bpel/extension"
+         xmlns:bpws="http://schemas.xmlsoap.org/ws/2003/03/business-process/"
+         xmlns:ns1="http://xmlns.oracle.com/TestParallel/SyncService/SyncService"
+         xmlns:bpel2="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+         xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+         xmlns:xp20="http://www.oracle.com/XSL/Transform/java/oracle.tip.pc.services.functions.Xpath20"
+         xmlns:oraext="http://www.oracle.com/XSL/Transform/java/oracle.tip.pc.services.functions.ExtFunc"
+         xmlns:dvm="http://www.oracle.com/XSL/Transform/java/oracle.tip.dvm.LookupValue"
+         xmlns:hwf="http://xmlns.oracle.com/bpel/workflow/xpath"
+         xmlns:ids="http://xmlns.oracle.com/bpel/services/IdentityService/xpath"
+         xmlns:bpm="http://xmlns.oracle.com/bpmn20/extensions"
+         xmlns:xdk="http://schemas.oracle.com/bpel/extension/xpath/function/xdk"
+         xmlns:xref="http://www.oracle.com/XSL/Transform/java/oracle.tip.xref.xpath.XRefXPathFunctions"
+         xmlns:ldap="http://schemas.oracle.com/xpath/extension/ldap">
+
+    <!-- 
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        PARTNERLINKS                                                      
+        List of services participating in this BPEL process               
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    --> 
+  <partnerLinks>
+    <!-- 
+      The 'client' role represents the requester of this service. It is 
+      used for callback. The location and correlation information associated
+      with the client role are automatically set using WS-Addressing.
+    -->
+    <partnerLink name="testsync_client" partnerLinkType="client:TestSync" myRole="TestSyncProvider"/>
+    <partnerLink name="SyncService" partnerLinkType="ns1:SyncService"
+                 partnerRole="SyncServiceProvider"/>
+  </partnerLinks>
+
+  <!-- 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      VARIABLES                                                        
+      List of messages and XML documents used within this BPEL process 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  -->
+  <variables>
+    <!-- Reference to the message passed as input during initiation -->
+    <variable name="inputVariable" messageType="client:TestSyncRequestMessage"/>
+
+    <!-- Reference to the message that will be returned to the requester-->
+    <variable name="outputVariable" messageType="client:TestSyncResponseMessage"/>
+    <variable name="InvokeSync_InputVariable"
+              messageType="ns1:SyncServiceRequestMessage"/>
+    <variable name="InvokeSync_OutputVariable"
+              messageType="ns1:SyncServiceResponseMessage"/>
+    <variable name="count" type="xsd:int"/>
+    <variable name="index" type="xsd:int"/>
+  </variables>
+
+  <!-- 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+     ORCHESTRATION LOGIC                                               
+     Set of activities coordinating the flow of messages across the    
+     services integrated within this business process                  
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  -->
+  <sequence name="main">
+
+    <!-- Receive input from requestor. (Note: This maps to operation defined in TestSync.wsdl) -->
+    <receive name="receiveInput" partnerLink="testsync_client" portType="client:TestSync" operation="process" variable="inputVariable" createInstance="yes"/>
+    <assign name="InitLoop">
+      <copy>
+        <from expression="1"/>
+        <to variable="index"/>
+      </copy>
+      <copy>
+        <from expression="10"/>
+        <to variable="count"/>
+      </copy>
+    </assign>
+    <while name="WhileCycle" condition="$index &lt;= $count">
+      <sequence name="SequenceInvokingLoop">
+        <invoke name="InvokeSync" bpelx:invokeAsDetail="no"
+                inputVariable="InvokeSync_InputVariable"
+                outputVariable="InvokeSync_OutputVariable"
+                partnerLink="SyncService" portType="ns1:SyncService"
+                operation="process"/>
+        <assign name="IncrementIndex">
+          <copy>
+            <from expression="$index + 1"/>
+            <to variable="index"/>
+          </copy>
+        </assign>
+      </sequence>
+    </while>
+    <!-- Generate reply to synchronous request -->
+    <reply name="replyOutput" partnerLink="testsync_client" portType="client:TestSync" operation="process" variable="outputVariable"/>
+  </sequence>
+</process>

@@ -1,0 +1,141 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<!--
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  Oracle JDeveloper BPEL Designer 
+  
+  Created: Mon Dec 05 18:09:37 MSK 2016
+  Author:  Daradur
+  Type: BPEL 1.1 Process
+  Purpose: One Way BPEL Process
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-->
+<process name="TestService"
+               targetNamespace="http://xmlns.oracle.com/TestParallel/TestParallel/TestService"
+               xmlns="http://schemas.xmlsoap.org/ws/2003/03/business-process/"
+               xmlns:client="http://xmlns.oracle.com/TestParallel/TestParallel/TestService"
+               xmlns:ora="http://schemas.oracle.com/xpath/extension"
+               xmlns:bpws="http://schemas.xmlsoap.org/ws/2003/03/business-process/"
+         xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+         xmlns:bpelx="http://schemas.oracle.com/bpel/extension"
+         xmlns:bpel2="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+         xmlns:ns1="http://xmlns.oracle.com/TestParallel/TestParallel/AsyncWrapper"
+         xmlns:xp20="http://www.oracle.com/XSL/Transform/java/oracle.tip.pc.services.functions.Xpath20"
+         xmlns:oraext="http://www.oracle.com/XSL/Transform/java/oracle.tip.pc.services.functions.ExtFunc"
+         xmlns:dvm="http://www.oracle.com/XSL/Transform/java/oracle.tip.dvm.LookupValue"
+         xmlns:hwf="http://xmlns.oracle.com/bpel/workflow/xpath"
+         xmlns:ids="http://xmlns.oracle.com/bpel/services/IdentityService/xpath"
+         xmlns:bpm="http://xmlns.oracle.com/bpmn20/extensions"
+         xmlns:xdk="http://schemas.oracle.com/bpel/extension/xpath/function/xdk"
+         xmlns:xref="http://www.oracle.com/XSL/Transform/java/oracle.tip.xref.xpath.XRefXPathFunctions"
+         xmlns:ldap="http://schemas.oracle.com/xpath/extension/ldap">
+
+  <!-- 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      PARTNERLINKS                                                      
+      List of services participating in this BPEL process               
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  --> 
+  <partnerLinks>
+    <!-- 
+      The 'client' role represents the requester of this service. It is 
+      used for callback. The location and correlation information associated
+      with the client role are automatically set using WS-Addressing.
+    -->
+    <partnerLink name="testservice_client" partnerLinkType="client:TestService" myRole="TestServiceProvider"/>
+    <partnerLink name="AsyncService" partnerLinkType="ns1:AsyncWrapper"
+                 partnerRole="AsyncWrapperProvider"
+                 myRole="AsyncWrapperRequester"/>
+  </partnerLinks>
+
+  <!-- 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      VARIABLES                                                        
+      List of messages and XML documents used within this BPEL process 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  -->
+  <variables>
+    <!-- Reference to the message passed as input during initiation -->
+    <variable name="inputVariable" messageType="client:TestServiceRequestMessage"/>
+    <variable name="index" type="xsd:int"/>
+    <variable name="count" type="xsd:int"/>
+    <variable name="threadIndex" type="xsd:int"/>
+    <variable name="threadsCount" type="xsd:int"/>
+    <variable name="outputVariable"
+              messageType="client:TestServiceResponseMessage"/>
+  </variables>
+
+  <!-- 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+     ORCHESTRATION LOGIC                                               
+     Set of activities coordinating the flow of messages across the    
+     services integrated within this business process                  
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  -->
+  <sequence name="main">
+
+    <!-- Receive input from requestor. (Note: This maps to operation defined in TestService.wsdl) -->
+    <receive name="receiveInput" partnerLink="testservice_client" portType="client:TestService" operation="process" variable="inputVariable" createInstance="yes"/>
+    <assign name="AssignthreadsCount">
+      <copy>
+        <from expression="number(ora:getPreference('threadsCount'))"/>
+        <to variable="threadsCount"/>
+      </copy>
+    </assign>
+    <bpelx:flowN name="ParallelInvoking" N="$threadsCount" indexVariable="threadIndex">
+      <sequence name="Sequence1">
+        <assign name="InitLoop">
+          <copy>
+            <from expression="10"/>
+            <to variable="count"/>
+          </copy>
+        </assign>
+        <scope name="ParallelInvokingScope" variableAccessSerializable="no">
+          <variables>
+            <variable name="index" type="xsd:int"/>
+            <variable name="AsyncInvoke_InputVariable"
+                      messageType="ns1:AsyncWrapperRequestMessage"/>
+            <variable name="AsyncReceive_InputVariable"
+                      messageType="ns1:AsyncWrapperResponseMessage"/>
+            <variable name="convId" type="xsd:string"/>
+          </variables>
+          <sequence>
+            <assign name="AssignIndex">
+              <copy>
+                <from variable="threadIndex"/>
+                <to variable="index"/>
+              </copy>
+              <copy>
+                <from expression="concat('Parent: ', ora:getComponentInstanceId(), ' (', $index, ' of ', $count, ')', '/', $threadsCount)"/>
+                <to variable="convId"/>
+              </copy>
+            </assign>
+            <while name="WhileCycle" condition="$index &lt;= $count">
+              <sequence>
+                <invoke name="AsyncInvoke" partnerLink="AsyncService"
+                        portType="ns1:AsyncWrapper" operation="process"
+                        bpelx:invokeAsDetail="no"
+                        inputVariable="AsyncInvoke_InputVariable"
+                        bpelx:conversationId="$convId"/>
+                <receive name="AsyncReceive" createInstance="no"
+                         variable="AsyncReceive_InputVariable"
+                         partnerLink="AsyncService"
+                         portType="ns1:AsyncWrapperCallback"
+                         operation="processResponse"
+                         bpelx:conversationId="$convId"/>
+                <assign name="IncrementIndex">
+                  <copy>
+                    <from expression="$index + $threadsCount"/>
+                    <to variable="index"/>
+                  </copy>
+                </assign>
+              </sequence>
+            </while>
+          </sequence>
+        </scope>
+      </sequence>
+    </bpelx:flowN>
+    <reply name="Reply" variable="outputVariable"
+           partnerLink="testservice_client" portType="client:TestService"
+           operation="process"/>
+  </sequence>
+</process>

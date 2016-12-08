@@ -1,0 +1,77 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<!--
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  Oracle JDeveloper BPEL Designer 
+  
+  Created: Mon Dec 05 18:11:02 MSK 2016
+  Author:  Daradur
+  Type: BPEL 1.1 Process
+  Purpose: Asynchronous BPEL Process
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-->
+<process name="AsyncWrapper"
+         targetNamespace="http://xmlns.oracle.com/TestParallel/TestParallel/AsyncWrapper"
+         xmlns="http://schemas.xmlsoap.org/ws/2003/03/business-process/"
+         xmlns:client="http://xmlns.oracle.com/TestParallel/TestParallel/AsyncWrapper"
+         xmlns:ora="http://schemas.oracle.com/xpath/extension"
+         xmlns:bpelx="http://schemas.oracle.com/bpel/extension"
+         xmlns:bpws="http://schemas.xmlsoap.org/ws/2003/03/business-process/"
+         xmlns:ns1="http://xmlns.oracle.com/TestParallel/SyncService/SyncService"
+         xmlns:bpel2="http://docs.oasis-open.org/wsbpel/2.0/process/executable">
+
+    <!-- 
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        PARTNERLINKS                                                      
+        List of services participating in this BPEL process               
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    --> 
+    <partnerLinks>
+        <!-- 
+      The 'client' role represents the requester of this service. It is 
+      used for callback. The location and correlation information associated
+      with the client role are automatically set using WS-Addressing.
+    -->
+        <partnerLink name="asyncwrapper_client" partnerLinkType="client:AsyncWrapper" myRole="AsyncWrapperProvider" partnerRole="AsyncWrapperRequester"/>
+        <partnerLink name="SyncService" partnerLinkType="ns1:SyncService"
+                     partnerRole="SyncServiceProvider"/>
+    </partnerLinks>
+
+    <!-- 
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        VARIABLES                                                        
+        List of messages and XML documents used within this BPEL process 
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    -->
+    <variables>
+        <!-- Reference to the message passed as input during initiation -->
+        <variable name="inputVariable" messageType="client:AsyncWrapperRequestMessage"/>
+
+        <!-- Reference to the message that will be sent back to the requester during callback -->
+        <variable name="outputVariable" messageType="client:AsyncWrapperResponseMessage"/>
+        <variable name="SyncInvoke_InputVariable"
+                  messageType="ns1:SyncServiceRequestMessage"/>
+        <variable name="SyncInvoke_OutputVariable"
+                  messageType="ns1:SyncServiceResponseMessage"/>
+    </variables>
+
+    <!-- 
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+       ORCHESTRATION LOGIC                                               
+       Set of activities coordinating the flow of messages across the    
+       services integrated within this business process                  
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    -->
+    <sequence name="main">
+        <!-- Receive input from requestor. (Note: This maps to operation defined in AsyncWrapper.wsdl) -->
+        <receive name="receiveInput" partnerLink="asyncwrapper_client" portType="client:AsyncWrapper" operation="process" variable="inputVariable" createInstance="yes"/>
+        <invoke name="SyncInvoke" bpelx:invokeAsDetail="no"
+                inputVariable="SyncInvoke_InputVariable"
+                outputVariable="SyncInvoke_OutputVariable"
+                partnerLink="SyncService" portType="ns1:SyncService"
+                operation="process"/>
+        <!-- 
+          Asynchronous callback to the requester. (Note: the callback location and correlation id is transparently handled using WS-addressing.)
+        -->
+        <invoke name="callbackClient" partnerLink="asyncwrapper_client" portType="client:AsyncWrapperCallback" operation="processResponse" inputVariable="outputVariable"/>
+    </sequence>
+</process>

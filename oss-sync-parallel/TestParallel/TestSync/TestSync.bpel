@@ -89,6 +89,13 @@
     </assign>
     <while name="WhileCycle" condition="$index &lt;= $count">
       <sequence name="SequenceInvokingLoop">
+        <assign name="AssignRequest">
+          <copy>
+            <from variable="index"/>
+            <to variable="InvokeSync_InputVariable" part="payload"
+                query="/ns1:process/ns1:input"/>
+          </copy>
+        </assign>
         <invoke name="InvokeSync" bpelx:invokeAsDetail="no"
                 inputVariable="InvokeSync_InputVariable"
                 outputVariable="InvokeSync_OutputVariable"

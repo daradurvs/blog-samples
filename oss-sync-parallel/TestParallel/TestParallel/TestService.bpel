@@ -62,6 +62,7 @@
     <variable name="threadsCount" type="xsd:int"/>
     <variable name="outputVariable"
               messageType="client:TestServiceResponseMessage"/>
+    <variable messageType="bpelx:RuntimeFaultMessage" name="FaultVar"/>
   </variables>
 
   <!-- 
@@ -111,6 +112,13 @@
             </assign>
             <while name="WhileCycle" condition="$index &lt;= $count">
               <sequence>
+                <assign name="AssignRequest">
+                  <copy>
+                    <from variable="index"/>
+                    <to variable="AsyncInvoke_InputVariable" part="payload"
+                        query="/ns1:process/ns1:input"/>
+                  </copy>
+                </assign>
                 <invoke name="AsyncInvoke" partnerLink="AsyncService"
                         portType="ns1:AsyncWrapper" operation="process"
                         bpelx:invokeAsDetail="no"
@@ -122,6 +130,30 @@
                          portType="ns1:AsyncWrapperCallback"
                          operation="processResponse"
                          bpelx:conversationId="$convId"/>
+                <switch name="Switch1">
+                  <case condition="bpws:getVariableData('AsyncReceive_InputVariable','payload','/ns1:processResponse/ns1:error') != ''">
+                    <bpelx:annotation>
+                      <bpelx:general>
+                        <bpelx:property name="userLabel">
+                          <![CDATA[If Fault]]>
+                        </bpelx:property>
+                      </bpelx:general>
+                    </bpelx:annotation>
+                    <sequence name="Sequence2">
+                      <assign name="AssignFaultDetail">
+                        <copy>
+                          <from variable="AsyncReceive_InputVariable"
+                                part="payload"
+                                query="/ns1:processResponse/ns1:error"/>
+                          <to variable="FaultVar" part="detail"/>
+                        </copy>
+                      </assign>
+                      <throw name="ThrowAsyncInvokeFault"
+                             faultName="bpelx:remoteFault"
+                             faultVariable="FaultVar"/>
+                    </sequence>
+                  </case>
+                </switch>
                 <assign name="IncrementIndex">
                   <copy>
                     <from expression="$index + $threadsCount"/>

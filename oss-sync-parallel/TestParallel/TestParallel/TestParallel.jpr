@@ -65,7 +65,7 @@
       <string v="oracle.toplink.workbench.addin/toplinkContentSet"/>
    </list>
    <value n="defaultPackage" v="soa.first"/>
-   <value n="Namespace" v="http://xmlns.oracle.com/TestParallel/TestParallel/TestService"/>
+   <value n="Namespace" v="http://xmlns.oracle.com/TestParallel/TestParallel/AsyncWrapper"/>
    <hash n="oracle.ide.model.ResourcePaths">
       <hash n="resourcesContentSet">
          <list n="url-path"/>
@@ -358,13 +358,13 @@
          </list>
       </hash>
    </hash>
-   <value n="ProcessName" v="TestService"/>
+   <value n="ProcessName" v="AsyncWrapper"/>
    <url n="SyncService_bpelFileURL" path="SyncService.bpel"/>
    <value n="SyncService_Namespace" v="http://xmlns.oracle.com/TestParallel/TestParallel/SyncService"/>
    <value n="SyncService_ProcessName" v="SyncService"/>
    <value n="SyncService_Template" v="BPEL_SYNC_PROCESS"/>
    <value n="SyncService_wsdl" v="SyncService.wsdl"/>
-   <value n="Template" v="BPEL_ONE_WAY_PROCESS"/>
+   <value n="Template" v="BPEL_ASYNC_PROCESS"/>
    <url n="TestService_bpelFileURL" path="TestService.bpel"/>
    <value n="TestService_Namespace" v="http://xmlns.oracle.com/TestParallel/TestParallel/TestService"/>
    <value n="TestService_ProcessName" v="TestService"/>

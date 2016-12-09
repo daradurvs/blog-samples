@@ -14,6 +14,7 @@
 		<complexType>
 			<sequence>
 				<element name="result" type="string"/>
+                                <element name="error" type="string"/>
 			</sequence>
 		</complexType>
 	</element>

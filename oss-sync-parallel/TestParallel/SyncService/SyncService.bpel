@@ -59,6 +59,14 @@
     <!-- Receive input from requestor. (Note: This maps to operation defined in SyncService.wsdl) -->
     <receive name="receiveInput" partnerLink="syncservice_client" portType="client:SyncService" operation="process" variable="inputVariable" createInstance="yes"/>
     <wait name="Wait3sec" for="'PT3S'"/>
+    <assign name="AssignResponse">
+      <copy>
+        <from variable="inputVariable" part="payload"
+              query="/client:process/client:input"/>
+        <to variable="outputVariable" part="payload"
+            query="/client:processResponse/client:result"/>
+      </copy>
+    </assign>
     <!-- Generate reply to synchronous request -->
     <reply name="replyOutput" partnerLink="syncservice_client" portType="client:SyncService" operation="process" variable="outputVariable"/>
   </sequence>

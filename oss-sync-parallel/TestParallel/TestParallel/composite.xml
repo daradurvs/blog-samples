@@ -34,13 +34,13 @@
     <property name="bpel.config.oneWayDeliveryPolicy" type="xs:string"
               many="false">async.persist</property>
     <property name="bpel.preference.threadsCount">5</property>
+    <property name="partnerLink.AsyncService.nonBlockingInvoke" type="xs:string"
+              many="false">true</property>
   </component>
   <component name="AsyncWrapper" version="1.1">
     <implementation.bpel src="AsyncWrapper.bpel"/>
     <property name="bpel.config.oneWayDeliveryPolicy" type="xs:string"
               many="false">async.persist</property>
-    <property name="partnerLink.SyncService.nonBlockingInvoke" type="xs:string"
-              many="false">true</property>
   </component>
   <reference name="SyncService" ui:wsdlLocation="SyncService.wsdl">
     <interface.wsdl interface="http://xmlns.oracle.com/TestParallel/SyncService/SyncService#wsdl.interface(SyncService)"/>
